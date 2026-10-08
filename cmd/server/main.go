@@ -1,33 +1,34 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
-	"time"
+
+	"github.com/PathumSandeepa/iconfigly-api/internal/config"
+	"github.com/PathumSandeepa/iconfigly-api/internal/database"
+	"github.com/PathumSandeepa/iconfigly-api/internal/server"
 )
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-		"service": "iconfigly-api",
-	})
-}
-
 func main() {
-	mux := http.NewServeMux()
+	cfg, err := config.Load()
 
-	mux.HandleFunc("GET /health", healthHandler)
-
-	server := &http.Server{
-		Addr:              ":8080",
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	log.Println("iconfigly-api running on :8080")
+	db, err := database.NewPostgres(cfg.DatabaseURL)
 
-	log.Fatal(server.ListenAndServe())
+	if err != nil {
+		log.Fatal("failed to connect to PostgreSQL: ", err)
+	}
+
+	defer db.Close()
+
+	appServer := server.New(cfg.Port)
+
+	log.Println("iconfigly-api running on :" + cfg.Port)
+
+	if err := appServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }
