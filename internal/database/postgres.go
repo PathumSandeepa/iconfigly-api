@@ -2,31 +2,34 @@ package database
 
 import (
 	"context"
-	"database/sql"
-	"errors"
+	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgres(databaseURL string) (*sql.DB, error) {
+func NewPostgres(databaseURL string) (*pgxpool.Pool, error) {
 	if databaseURL == "" {
-		return nil, errors.New("database URL is required")
+		return nil, fmt.Errorf("database URL is required")
 	}
 
-	db, err := sql.Open("postgres", databaseURL)
-
+	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse PostgreSQL configuration: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		return nil, fmt.Errorf("create PostgreSQL connection pool: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		return nil, err
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("ping PostgreSQL: %w", err)
 	}
 
-	return db, nil
+	return pool, nil
 }
