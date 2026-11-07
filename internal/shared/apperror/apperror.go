@@ -16,6 +16,7 @@ const (
 	CodeSeparationOfDuties Code = "SEPARATION_OF_DUTIES"
 	CodeRateLimited        Code = "RATE_LIMITED"
 	CodeInternal           Code = "INTERNAL"
+	CodeUnavailable        Code = "SERVICE_UNAVAILABLE"
 )
 
 type Error struct {
@@ -84,6 +85,15 @@ func Internal(cause error) *Error {
 		Code:   CodeInternal,
 		Title:  "Internal server error",
 		Detail: "an unexpected error occurred",
+		Cause:  cause,
+	}
+}
+
+func Unavailable(detail string, cause error) *Error {
+	return &Error{
+		Code:   CodeUnavailable,
+		Title:  "Service unavailable",
+		Detail: detail,
 		Cause:  cause,
 	}
 }

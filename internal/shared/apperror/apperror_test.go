@@ -18,6 +18,7 @@ func TestConstructorsSetExpectedCode(t *testing.T) {
 		{"unauthorized", Unauthorized("login required"), CodeUnauthorized},
 		{"forbidden", Forbidden("missing permission"), CodeForbidden},
 		{"internal", Internal(errors.New("boom")), CodeInternal},
+		{"unavailable", Unavailable("database unreachable", errors.New("boom")), CodeUnavailable},
 	}
 
 	for _, tt := range tests {
