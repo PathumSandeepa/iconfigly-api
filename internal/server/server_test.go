@@ -1,0 +1,82 @@
+package server
+
+import (
+	"bytes"
+	"context"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/PathumSandeepa/iconfigly-api/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func newTestServer(t *testing.T) (*http.Server, *bytes.Buffer) {
+	t.Helper()
+
+	pool, err := pgxpool.New(context.Background(), "postgres://user:pass@127.0.0.1:1/db?sslmode=disable")
+	if err != nil {
+		t.Fatalf("create lazy pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+
+	return New(config.Config{Port: "8080"}, pool, logger), &logs
+}
+
+func TestNewListensOnConfiguredPort(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	if srv.Addr != ":8080" {
+		t.Fatalf("expected :8080, got %s", srv.Addr)
+	}
+	if srv.ReadHeaderTimeout == 0 {
+		t.Fatal("expected a read header timeout to protect against slow clients")
+	}
+}
+
+func TestHealthRouteIsRegisteredWithRequestID(t *testing.T) {
+	srv, logs := newTestServer(t)
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if rec.Header().Get("X-Request-ID") == "" {
+		t.Fatal("expected the request id middleware to set X-Request-ID")
+	}
+	if !strings.Contains(logs.String(), `"path":"/health"`) {
+		t.Fatalf("expected the logger middleware to log the request, got %s", logs.String())
+	}
+}
+
+func TestReadyRouteReturns503WhenDatabaseIsDown(t *testing.T) {
+	srv, _ := newTestServer(t)
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ready", nil))
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/problem+json" {
+		t.Fatalf("unexpected content type %q", got)
+	}
+}
+
+func TestUnknownRouteReturns404(t *testing.T) {
+	srv, _ := newTestServer(t)
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/missing", nil))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
