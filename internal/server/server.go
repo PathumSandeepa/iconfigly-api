@@ -10,8 +10,10 @@ import (
 	"github.com/PathumSandeepa/iconfigly-api/internal/auth"
 	"github.com/PathumSandeepa/iconfigly-api/internal/config"
 	"github.com/PathumSandeepa/iconfigly-api/internal/database"
+	"github.com/PathumSandeepa/iconfigly-api/internal/environment"
 	"github.com/PathumSandeepa/iconfigly-api/internal/health"
 	"github.com/PathumSandeepa/iconfigly-api/internal/organization"
+	"github.com/PathumSandeepa/iconfigly-api/internal/project"
 	"github.com/PathumSandeepa/iconfigly-api/internal/shared/httputil"
 	"github.com/PathumSandeepa/iconfigly-api/internal/team"
 	"github.com/PathumSandeepa/iconfigly-api/internal/user"
@@ -68,6 +70,16 @@ func New(cfg config.Config, db *pgxpool.Pool, logger *slog.Logger) *http.Server 
 	teamSvc := team.NewService(teamRepo, userRepo, authorizer, auditSvc, txManager)
 	teamHandler := team.NewHandler(teamSvc)
 	teamHandler.RegisterRoutes(mux)
+
+	envRepo := environment.NewPostgresRepository(txManager)
+	envSvc := environment.NewService(envRepo, authorizer, auditSvc, txManager)
+	envHandler := environment.NewHandler(envSvc)
+	envHandler.RegisterRoutes(mux)
+
+	projRepo := project.NewPostgresRepository(txManager)
+	projSvc := project.NewService(projRepo, envRepo, authorizer, auditSvc, txManager)
+	projHandler := project.NewHandler(projSvc)
+	projHandler.RegisterRoutes(mux)
 
 	handler := httputil.Chain(
 		mux,
