@@ -56,12 +56,35 @@ type AuthResponseData struct {
 }
 
 func (h *Handler) InitializePlatform(w http.ResponseWriter, r *http.Request) {
-	var cmd SetupCmd
-	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+	var body map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteProblem(w, r, apperror.Validation("malformed JSON body", map[string]string{
 			"body": "could not decode request body",
 		}))
 		return
+	}
+
+	cmd := SetupCmd{
+		OrgSlug:       body["org_slug"],
+		OrgName:       body["org_name"],
+		AdminEmail:    body["admin_email"],
+		AdminFullName: body["admin_full_name"],
+		AdminPassword: body["admin_password"],
+	}
+	if cmd.OrgSlug == "" {
+		cmd.OrgSlug = body["organization_slug"]
+	}
+	if cmd.OrgName == "" {
+		cmd.OrgName = body["organization_name"]
+	}
+	if cmd.AdminEmail == "" {
+		cmd.AdminEmail = body["email"]
+	}
+	if cmd.AdminFullName == "" {
+		cmd.AdminFullName = body["full_name"]
+	}
+	if cmd.AdminPassword == "" {
+		cmd.AdminPassword = body["password"]
 	}
 
 	ip := extractClientIP(r)
