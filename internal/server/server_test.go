@@ -156,6 +156,34 @@ func TestProjectAndEnvironmentRoutesAreRegistered(t *testing.T) {
 	}
 }
 
+func TestServiceResourceAndBindingRoutesAreRegistered(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	recServices := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recServices, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/services", nil))
+	if recServices.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on services, got %d", recServices.Code)
+	}
+
+	recContext := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recContext, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/services/payment-svc/context", nil))
+	if recContext.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on service context, got %d", recContext.Code)
+	}
+
+	recResources := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recResources, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/resources", nil))
+	if recResources.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on resources, got %d", recResources.Code)
+	}
+
+	recGraph := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recGraph, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/graph", nil))
+	if recGraph.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on project topology graph, got %d", recGraph.Code)
+	}
+}
+
 func TestUnknownRouteReturns404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := httptest.NewRecorder()
