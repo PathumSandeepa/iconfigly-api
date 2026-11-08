@@ -140,6 +140,22 @@ func TestTeamRoutesAreRegistered(t *testing.T) {
 	}
 }
 
+func TestProjectAndEnvironmentRoutesAreRegistered(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	recProjects := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recProjects, httptest.NewRequest(http.MethodGet, "/api/v1/projects", nil))
+	if recProjects.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/projects, got %d", recProjects.Code)
+	}
+
+	recEnvs := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recEnvs, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/environments", nil))
+	if recEnvs.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/projects/{projectID}/environments, got %d", recEnvs.Code)
+	}
+}
+
 func TestUnknownRouteReturns404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := httptest.NewRecorder()
