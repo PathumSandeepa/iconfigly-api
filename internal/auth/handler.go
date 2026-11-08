@@ -26,6 +26,7 @@ func NewHandler(svc *Service, userRepo UserRepository) *Handler {
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/setup/status", h.SetupStatus)
+	mux.HandleFunc("GET /api/v1/auth/setup-status", h.SetupStatus)
 	mux.HandleFunc("POST /api/v1/setup/initialize", h.InitializePlatform)
 	mux.HandleFunc("POST /api/v1/auth/setup", h.InitializePlatform)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
