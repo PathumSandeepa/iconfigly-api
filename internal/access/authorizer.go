@@ -54,3 +54,30 @@ func (a *Authorizer) Require(ctx context.Context, actor Actor, verb PermissionVe
 	}
 	return nil
 }
+
+func (a *Authorizer) ResolveEffectiveRole(ctx context.Context, actor Actor, targetScope Scope) (RoleName, error) {
+	if actor.IsSuperAdmin {
+		return RoleOrgAdmin, nil
+	}
+
+	if actor.OrganizationID != targetScope.OrganizationID {
+		return "", nil
+	}
+
+	ancestors := targetScope.Ancestors()
+	bindings, err := a.repo.FindActiveBindingsForActor(ctx, actor.OrganizationID, actor.UserID, actor.TeamIDs, ancestors, time.Now().UTC())
+	if err != nil {
+		return "", err
+	}
+
+	roleOrder := []RoleName{RoleOrgAdmin, RoleEnvAdmin, RoleServiceLead, RoleDeveloper, RoleViewer}
+	for _, role := range roleOrder {
+		for _, b := range bindings {
+			if b.RoleName == role {
+				return role, nil
+			}
+		}
+	}
+
+	return "", nil
+}
