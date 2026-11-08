@@ -86,6 +86,22 @@ func TestAuditRoutesAreRegistered(t *testing.T) {
 	}
 }
 
+func TestAccessRoutesAreRegistered(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	recBindings := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recBindings, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/access/bindings", nil))
+	if recBindings.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on access bindings, got %d", recBindings.Code)
+	}
+
+	recInspect := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recInspect, httptest.NewRequest(http.MethodGet, "/api/v1/projects/0192e226-9f44-7f1b-a951-8728d48bb789/access/inspect", nil))
+	if recInspect.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on access inspect, got %d", recInspect.Code)
+	}
+}
+
 func TestUnknownRouteReturns404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := httptest.NewRecorder()

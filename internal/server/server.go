@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/PathumSandeepa/iconfigly-api/internal/access"
 	"github.com/PathumSandeepa/iconfigly-api/internal/audit"
 	"github.com/PathumSandeepa/iconfigly-api/internal/config"
 	"github.com/PathumSandeepa/iconfigly-api/internal/database"
@@ -24,6 +25,12 @@ func New(cfg config.Config, db *pgxpool.Pool, logger *slog.Logger) *http.Server 
 	auditSvc := audit.NewService(auditRepo, txManager)
 	auditHandler := audit.NewHandler(auditSvc)
 	auditHandler.RegisterRoutes(mux)
+
+	accessRepo := access.NewPostgresRepository(txManager)
+	authorizer := access.NewAuthorizer(accessRepo)
+	accessSvc := access.NewService(accessRepo, authorizer, auditSvc, txManager)
+	accessHandler := access.NewHandler(accessSvc)
+	accessHandler.RegisterRoutes(mux)
 
 	handler := httputil.Chain(
 		mux,
