@@ -102,6 +102,28 @@ func TestAccessRoutesAreRegistered(t *testing.T) {
 	}
 }
 
+func TestAuthAndUserRoutesAreRegistered(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	recMe := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recMe, httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil))
+	if recMe.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/auth/me, got %d", recMe.Code)
+	}
+
+	recUsers := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recUsers, httptest.NewRequest(http.MethodGet, "/api/v1/users", nil))
+	if recUsers.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/users, got %d", recUsers.Code)
+	}
+
+	recTokens := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recTokens, httptest.NewRequest(http.MethodGet, "/api/v1/auth/tokens", nil))
+	if recTokens.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/auth/tokens, got %d", recTokens.Code)
+	}
+}
+
 func TestUnknownRouteReturns404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := httptest.NewRecorder()
