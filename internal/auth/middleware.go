@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/PathumSandeepa/iconfigly-api/internal/access"
 	"github.com/PathumSandeepa/iconfigly-api/internal/shared/apperror"
@@ -13,15 +14,39 @@ import (
 
 const SessionCookieName = "iconfigly_session"
 
+func isPublicAuthPath(path string) bool {
+	return path == "/health" ||
+		path == "/ready" ||
+		path == "/api/v1/setup/status" ||
+		path == "/api/v1/setup/initialize" ||
+		path == "/api/v1/auth/setup" ||
+		path == "/api/v1/auth/login"
+}
+
 func AuthenticateMiddleware(authSvc *Service) httputil.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+			isPublic := isPublicAuthPath(path)
 			ip := extractClientIP(r)
 
 			cookie, err := r.Cookie(SessionCookieName)
 			if err == nil && cookie.Value != "" {
 				actor, err := authSvc.AuthenticateSession(r.Context(), cookie.Value, ip)
 				if err != nil {
+					if isPublic {
+						next.ServeHTTP(w, r)
+						return
+					}
+					http.SetCookie(w, &http.Cookie{
+						Name:     SessionCookieName,
+						Value:    "",
+						Path:     "/",
+						HttpOnly: true,
+						SameSite: http.SameSiteLaxMode,
+						MaxAge:   -1,
+						Expires:  time.Unix(0, 0),
+					})
 					httputil.WriteProblem(w, r, err)
 					return
 				}
@@ -37,6 +62,10 @@ func AuthenticateMiddleware(authSvc *Service) httputil.Middleware {
 					token := strings.TrimSpace(parts[1])
 					actor, err := authSvc.AuthenticatePAT(r.Context(), token, ip)
 					if err != nil {
+						if isPublic {
+							next.ServeHTTP(w, r)
+							return
+						}
 						httputil.WriteProblem(w, r, err)
 						return
 					}
@@ -44,8 +73,10 @@ func AuthenticateMiddleware(authSvc *Service) httputil.Middleware {
 					next.ServeHTTP(w, r.WithContext(ctx))
 					return
 				}
-				httputil.WriteProblem(w, r, apperror.Unauthorized("invalid authorization header format"))
-				return
+				if !isPublic {
+					httputil.WriteProblem(w, r, apperror.Unauthorized("invalid authorization header format"))
+					return
+				}
 			}
 
 			next.ServeHTTP(w, r)
@@ -64,11 +95,7 @@ func CSRFMiddleware() httputil.Middleware {
 			}
 
 			path := r.URL.Path
-			if path == "/health" || path == "/ready" ||
-				path == "/api/v1/setup/status" ||
-				path == "/api/v1/setup/initialize" ||
-				path == "/api/v1/auth/setup" ||
-				path == "/api/v1/auth/login" {
+			if isPublicAuthPath(path) {
 				next.ServeHTTP(w, r)
 				return
 			}
