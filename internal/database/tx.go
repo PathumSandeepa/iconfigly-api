@@ -36,6 +36,10 @@ func (m *TxManager) WithTx(ctx context.Context, fn func(txCtx context.Context) e
 		return fn(ctx)
 	}
 
+	if m.pool == nil {
+		return fn(ctx)
+	}
+
 	tx, err := m.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)

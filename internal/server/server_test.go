@@ -70,6 +70,22 @@ func TestReadyRouteReturns503WhenDatabaseIsDown(t *testing.T) {
 	}
 }
 
+func TestAuditRoutesAreRegistered(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	recList := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recList, httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil))
+	if recList.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 for missing organization_id on list route, got %d", recList.Code)
+	}
+
+	recVerify := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recVerify, httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs/verify", nil))
+	if recVerify.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 for missing organization_id on verify route, got %d", recVerify.Code)
+	}
+}
+
 func TestUnknownRouteReturns404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := httptest.NewRecorder()
