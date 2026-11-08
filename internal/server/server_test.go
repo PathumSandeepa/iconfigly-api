@@ -124,6 +124,22 @@ func TestAuthAndUserRoutesAreRegistered(t *testing.T) {
 	}
 }
 
+func TestTeamRoutesAreRegistered(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	recTeams := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recTeams, httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil))
+	if recTeams.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/teams, got %d", recTeams.Code)
+	}
+
+	recTeamDetail := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(recTeamDetail, httptest.NewRequest(http.MethodGet, "/api/v1/teams/0192e226-9f44-7f1b-a951-8728d48bb789", nil))
+	if recTeamDetail.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request on /api/v1/teams/{teamID}, got %d", recTeamDetail.Code)
+	}
+}
+
 func TestUnknownRouteReturns404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := httptest.NewRecorder()

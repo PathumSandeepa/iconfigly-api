@@ -13,6 +13,7 @@ import (
 	"github.com/PathumSandeepa/iconfigly-api/internal/health"
 	"github.com/PathumSandeepa/iconfigly-api/internal/organization"
 	"github.com/PathumSandeepa/iconfigly-api/internal/shared/httputil"
+	"github.com/PathumSandeepa/iconfigly-api/internal/team"
 	"github.com/PathumSandeepa/iconfigly-api/internal/user"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -62,6 +63,11 @@ func New(cfg config.Config, db *pgxpool.Pool, logger *slog.Logger) *http.Server 
 	userSvc := user.NewService(userRepo, authorizer, auditSvc, accessSvc, authSvc, txManager)
 	userHandler := user.NewHandler(userSvc)
 	userHandler.RegisterRoutes(mux)
+
+	teamRepo := team.NewPostgresRepository(txManager)
+	teamSvc := team.NewService(teamRepo, userRepo, authorizer, auditSvc, txManager)
+	teamHandler := team.NewHandler(teamSvc)
+	teamHandler.RegisterRoutes(mux)
 
 	handler := httputil.Chain(
 		mux,
