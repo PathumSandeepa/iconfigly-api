@@ -14,6 +14,7 @@ import (
 	"github.com/PathumSandeepa/iconfigly-api/internal/config"
 	"github.com/PathumSandeepa/iconfigly-api/internal/database"
 	"github.com/PathumSandeepa/iconfigly-api/internal/server"
+	"github.com/PathumSandeepa/iconfigly-api/internal/version"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -47,7 +48,7 @@ func run(logger *slog.Logger) error {
 
 	serverErr := make(chan error, 1)
 	go func() {
-		logger.Info("iconfigly-api starting", "port", cfg.Port, "env", cfg.Env)
+		logger.Info("iconfigly-api starting", "port", cfg.Port, "env", cfg.Env, "version", version.Current())
 		serverErr <- appServer.ListenAndServe()
 	}()
 

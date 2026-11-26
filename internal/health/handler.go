@@ -7,6 +7,7 @@ import (
 
 	"github.com/PathumSandeepa/iconfigly-api/internal/shared/apperror"
 	"github.com/PathumSandeepa/iconfigly-api/internal/shared/httputil"
+	"github.com/PathumSandeepa/iconfigly-api/internal/version"
 )
 
 const readinessTimeout = 2 * time.Second
@@ -19,6 +20,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{
 		"status":  "ok",
 		"service": "iconfigly-api",
+		"version": version.Current(),
 	})
 }
 
