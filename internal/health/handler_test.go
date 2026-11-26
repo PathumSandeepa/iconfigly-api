@@ -33,7 +33,7 @@ func TestHandlerReportsLiveness(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("expected JSON body: %v", err)
 	}
-	if body["status"] != "ok" || body["service"] != "iconfigly-api" {
+	if body["status"] != "ok" || body["service"] != "iconfigly-api" || body["version"] == "" {
 		t.Fatalf("unexpected body %v", body)
 	}
 }
